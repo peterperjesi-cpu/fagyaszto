@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fagyasztó Leltár</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; min-height: 100vh; padding: 16px; }
+        .container { max-width: 500px; margin: 0 auto; background-color: #1e293b; border-radius: 16px; padding: 20px; border: 1px solid #334155; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 16px; margin-bottom: 20px; }
+        h1 { font-size: 22px; font-weight: 800; color: #34d399; }
+        
+        .btn-main { background-color: #10b981; color: #022c22; font-weight: 700; border: none; padding: 10px 16px; border-radius: 10px; font-size: 15px; cursor: pointer; }
+        .btn-main:hover { background-color: #059669; }
+        
+        .filter-section { margin-bottom: 16px; }
+        .filter-title { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px; }
+        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+        .filter-bar::-webkit-scrollbar { height: 4px; }
+        .filter-bar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        
+        .filter-btn { background-color: #334155; color: #cbd5e1; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+        .filter-btn.active { background-color: #059669; color: #ffffff; font-weight: 700; }
+        
+        .item-card { background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .item-info { display: flex; align-items: center; gap: 12px; }
+        .item-img { width: 56px; height: 56px; object-cover: cover; border-radius: 8px; border: 1px solid #334155; }
+        .item-placeholder { width: 56px; height: 56px; background-color: #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid #334155; }
+        .item-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+        .item-sub { font-size: 11px; font-weight: 700; color: #34d399; text-transform: uppercase; }
+        .item-note { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        
+        .action-btns { display: flex; gap: 6px; }
+        .btn-icon { border: none; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 16px; }
+        .btn-edit { background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .btn-delete { background-color: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.75); align-items: center; justify-content: center; padding: 16px; z-index: 100; }
+        .modal.open { display: flex; }
+        .modal-content { background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 420px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .modal-title { font-size: 18px; font-weight: 700; color: #34d399; }
+        
+        label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px; }
+        input[type="text"], select, textarea { width: 100%; background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: #ffffff; font-size: 14px; outline: none; }
+        input[type="text"]:focus, select:focus, textarea:focus { border-color: #10b981; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+        .btn-cancel { flex: 1; background-color: #475569; color: #ffffff; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-save { flex: 1; background-color: #10b981; color: #022c22; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .empty-msg { text-align: center; color: #64748b; padding: 24px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🧊 Fagyasztó Leltár</h1>
+            <button class="btn-main" onclick="openAddModal()">+ Új Tétel</button>
+        </header>
+
+        <!-- Rekesz szűrő -->
+        <div class="filter-section">
+            <span class="filter-title">Rekesz szűrés:</span>
+            <div id="compartmentFilters" class="filter-bar">
+                <button class="filter-btn active" onclick="filterCompartment('all')">Összes rekesz</button>
+                <button class="filter-btn" onclick="filterCompartment('1. kosár')">1. kosár</button>
+                <button class="filter-btn" onclick="filterCompartment('2. kosár')">2. kosár</button>
+                <button class="filter-btn" onclick="filterCompartment('3. kosár')">3. kosár</button>
+                <button class="filter-btn" onclick="filterCompartment('gyorsfagyasztó')">Gyorsfagyasztó</button>
+                <button class="filter-btn" onclick="filterCompartment('lenti rekesz')">Lenti rekesz</button>
+            </div>
+        </div>
+
+        <!-- Kategória szűrő -->
+        <div class="filter-section">
+            <span class="filter-title">Kategória szűrés:</span>
+            <div id="categoryFilters" class="filter-bar">
+                <button class="filter-btn active" onclick="filterCategory('all')">Összes kategória</button>
+                <button class="filter-btn" onclick="filterCategory('zöldség')">Zöldség</button>
+                <button class="filter-btn" onclick="filterCategory('gyümölcs')">Gyümölcs</button>
+                <button class="filter-btn" onclick="filterCategory('készétel')">Készétel</button>
+                <button class="filter-btn" onclick="filterCategory('édesség')">Édesség</button>
+                <button class="filter-btn" onclick="filterCategory('hús')">Hús</button>
+                <button class="filter-btn" onclick="filterCategory('hal')">Hal</button>
+                <button class="filter-btn" onclick="filterCategory('tejtermék')">Tejtermék</button>
+            </div>
+        </div>
+
+        <!-- Tételek listája -->
+        <div id="itemList"></div>
+    </div>
+
+    <!-- Modal (Hozzáadás / Módosítás) -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="modal-title">Új tétel felvitele</h2>
+            <input type="hidden" id="editIndex" value="">
+
+            <div>
+                <label>Étel neve:</label>
+                <input type="text" id="itemName" placeholder="Pl. Borsóleves">
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label>Kategória:</label>
+                    <select id="itemCategory">
+                        <option value="zöldség">Zöldség</option>
+                        <option value="gyümölcs">Gyümölcs</option>
+                        <option value="készétel">Készétel</option>
+                        <option value="édesség">Édesség</option>
+                        <option value="hús">Hús</option>
+                        <option value="hal">Hal</option>
+                        <option value="tejtermék">Tejtermék</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Fagyasztó rész:</label>
+                    <select id="itemCompartment">
+                        <option value="1. kosár">1. kosár</option>
+                        <option value="2. kosár">2. kosár</option>
+                        <option value="3. kosár">3. kosár</option>
+                        <option value="gyorsfagyasztó">Gyorsfagyasztó</option>
+                        <option value="lenti rekesz">Lenti rekesz</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label>Megjegyzés:</label>
+                <textarea id="itemNote" rows="2" placeholder="Pl. 2 adag, készítve: 2026.10"></textarea>
+            </div>
+
+            <div>
+                <label>Fotó csatolása:</label>
+                <input type="file" id="itemPhoto" accept="image/*" style="font-size: 12px; color: #94a3b8;">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Mégse</button>
+                <button class="btn-save" onclick="saveItem()">Mentés</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var items = [];
+        try {
+            var saved = localStorage.getItem('fagyaszto_items_v2');
+            if (saved) {
+                items = JSON.parse(saved);
+            } else {
+                items = [
+                    { name: 'Sertés karaj', category: 'hús', compartment: '1. kosár', note: 'Szeletelt, 1kg', photo: '' },
+                    { name: 'Zöldborsó', category: 'zöldség', compartment: '2. kosár', note: 'Házi kerti', photo: '' },
+                    { name: 'Reszelt sajt', category: 'tejtermék', compartment: '3. kosár', note: 'Trappista', photo: '' }
+                ];
+            }
+        } catch (e) {
+            items = [];
+        }
+
+        var currentComp = 'all';
+        var currentCat = 'all';
+
+        function renderItems() {
+            var list = document.getElementById('itemList');
+            list.innerHTML = '';
+
+            var filtered = items.filter(function(item) {
+                var matchComp = (currentComp === 'all') || (item.compartment === currentComp);
+                var matchCat = (currentCat === 'all') || (item.category === currentCat);
+                return matchComp && matchCat;
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-msg">Nincs találat a szűrés alapján.</div>';
+                return;
+            }
+
+            filtered.forEach(function(item) {
+                var realIndex = items.indexOf(item);
+                var div = document.createElement('div');
+                div.className = 'item-card';
+
+                var imgHtml = item.photo 
+                    ? '<img src="' + item.photo + '" class="item-img">'
+                    : '<div class="item-placeholder">🧊</div>';
+
+                var noteHtml = item.note ? '<div class="item-note">' + escapeHtml(item.note) + '</div>' : '';
+
+                div.innerHTML = 
+                    '<div class="item-info">' +
+                        imgHtml +
+                        '<div>' +
+                            '<div class="item-name">' + escapeHtml(item.name) + '</div>' +
+                            '<div class="item-sub">' + item.category + ' • ' + item.compartment + '</div>' +
+                            noteHtml +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="action-btns">' +
+                        '<button class="btn-icon btn-edit" onclick="openEditModal(' + realIndex + ')" title="Módosítás">✏️</button>' +
+                        '<button class="btn-icon btn-delete" onclick="deleteItem(' + realIndex + ')" title="Törlés">🗑️</button>' +
+                    '</div>';
+
+                list.appendChild(div);
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function filterCompartment(comp) {
+            currentComp = comp;
+            var buttons = document.querySelectorAll('#compartmentFilters button');
+            buttons.forEach(function(b) { b.classList.remove('active'); });
+            event.target.classList.add('active');
+            renderItems();
+        }
+
+        function filterCategory(cat) {
+            currentCat = cat;
+            var buttons = document.querySelectorAll('#categoryFilters button');
+            buttons.forEach(function(b) { b.classList.remove('active'); });
+            event.target.classList.add('active');
+            renderItems();
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').innerText = 'Új tétel felvitele';
+            document.getElementById('editIndex').value = '';
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemNote').value = '';
+            document.getElementById('itemPhoto').value = '';
+            document.getElementById('itemModal').classList.add('open');
+        }
+
+        function openEditModal(index) {
+            var item = items[index];
+            document.getElementById('modalTitle').innerText = 'Tétel módosítása';
+            document.getElementById('editIndex').value = index;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemCategory').value = item.category;
+            document.getElementById('itemCompartment').value = item.compartment;
+            document.getElementById('itemNote').value = item.note || '';
+            document.getElementById('itemPhoto').value = '';
+            document.getElementById('itemModal').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').classList.remove('open');
+        }
+
+        function saveItem() {
+            var name = document.getElementById('itemName').value.trim();
+            if (!name) {
+                alert('Kérlek add meg az étel nevét!');
+                return;
+            }
+
+            var category = document.getElementById('itemCategory').value;
+            var compartment = document.getElementById('itemCompartment').value;
+            var note = document.getElementById('itemNote').value.trim();
+            var editIndex = document.getElementById('editIndex').value;
+            var photoInput = document.getElementById('itemPhoto');
+
+            var finalizeSave = function(photoData) {
+                if (editIndex === '') {
+                    items.push({
+                        name: name,
+                        category: category,
+                        compartment: compartment,
+                        note: note,
+                        photo: photoData || ''
+                    });
+                } else {
+                    var idx = parseInt(editIndex, 10);
+                    var oldPhoto = items[idx].photo;
+                    items[idx] = {
+                        name: name,
+                        category: category,
+                        compartment: compartment,
+                        note: note,
+                        photo: photoData ? photoData : oldPhoto
+                    };
+                }
+
+                try {
+                    localStorage.setItem('fagyaszto_items_v2', JSON.stringify(items));
+                } catch (e) {
+                    console.error('Nem sikerült menteni a localStorage-ba:', e);
+                }
+
+                closeModal();
+                renderItems();
+            };
+
+            if (photoInput.files && photoInput.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    finalizeSave(e.target.result);
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                finalizeSave('');
+            }
+        }
+
+        function deleteItem(index) {
+            if (confirm('Biztosan törölni szeretnéd ezt a tételt?')) {
+                items.splice(index, 1);
+                try {
+                    localStorage.setItem('fagyaszto_items_v2', JSON.stringify(items));
+                } catch (e) {}
+                renderItems();
+            }
+        }
+
+        // Első futás
+        renderItems();
+    </script>
+</body>
+</html>
